@@ -53,18 +53,24 @@ const testConnection = async () => {
 
 
 
-// Function to create tables in the database
+
+
 const syncDatabase = async (options = {}) => {
   try {
-    console.log(' Creating/updating database tables...');
+    console.log('Creating/updating database tables...');
+    
+    // IMPORTANT: Load models and associations BEFORE syncing
+    console.log('Loading models and associations...');
+    require('../models'); // This loads the models/index.js file which sets up associations
     
     // This creates tables based on our models
+    // options.force = true means "delete existing tables and recreate them"
     await sequelize.sync(options);
     
     if (options.force) {
-      console.log(' Database tables reset and recreated!');
+      console.log('Database tables reset and recreated!');
     } else {
-      console.log(' Database tables created/updated successfully!');
+      console.log('Database tables created/updated successfully!');
     }
     
     return true;

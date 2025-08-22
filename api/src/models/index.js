@@ -21,5 +21,7 @@ Appointment.belongsTo(User, {
 // Export all models
 module.exports = {
   User,
-  Appointment
+  Appointment,
+sequelize: require('../config/database').sequelize
+
 };

@@ -5,6 +5,7 @@ const helmet = require('helmet');
 require('dotenv').config(); // Load environment variables
 const authRoutes = require('./routes/authRoutes');
 const { testConnection, syncDatabase } = require('./config/database');
+const appointmentRoutes = require('./routes/appointmentRoutes');
 
 // Create Express app
 const app = express();
@@ -63,6 +64,8 @@ app.get('/', (req, res) => {
 
 //Authentication Routes : /api/auth/register  /api/auth/login  /api/auth/profile
 app.use('/api/auth', authRoutes);
+app.use('/api/appointments', appointmentRoutes); // Appointment routes 
+
 
 
 
