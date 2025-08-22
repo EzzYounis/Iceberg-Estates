@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');  // For handling JWT tokens
 const config = require('../config/config'); // Our configuration
-const { User } = require('../models/User'); // User model
+const User  = require('../models/User'); // User model
 
 console.log('Setting up authentication middleware...');
 
