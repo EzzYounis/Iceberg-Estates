@@ -38,6 +38,7 @@ module.exports = {
   business: {
     officePostcode: process.env.OFFICE_POSTCODE || 'CM2 7PJ',
     appointmentDurationMinutes: 60, // All appointments are 1 hour
+    defaultTravelSpeedKmh: 40
     
   }
 };
