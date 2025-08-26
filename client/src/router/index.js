@@ -1,8 +1,144 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+
+// Import views (we'll create these next)
+import LoginView from '@/views/LoginView.vue'
+import RegisterView from '@/views/RegisterView.vue'
+import DashboardView from '@/views/DashboardView.vue'
+import AppointmentsView from '@/views/AppointmentsView.vue'
+import AppointmentDetailView from '@/views/AppointmentDetailView.vue'
+import CreateAppointmentView from '@/views/CreateAppointmentView.vue'
+import ScheduleView from '@/views/ScheduleView.vue'
+import ProfileView from '@/views/ProfileView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  routes: [],
+  routes: [
+    // Public routes (no authentication required)
+    {
+      path: '/login',
+      name: 'login',
+      component: LoginView,
+      meta: { 
+        requiresAuth: false,
+        title: 'Login - Iceberg Estates'
+      }
+    },
+    {
+      path: '/register',
+      name: 'register',
+      component: RegisterView,
+      meta: { 
+        requiresAuth: false,
+        title: 'Register - Iceberg Estates'
+      }
+    },
+    
+    // Protected routes (authentication required)
+    {
+      path: '/',
+      name: 'dashboard',
+      component: DashboardView,
+      meta: { 
+        requiresAuth: true,
+        title: 'Dashboard - Iceberg Estates'
+      }
+    },
+    {
+      path: '/appointments',
+      name: 'appointments',
+      component: AppointmentsView,
+      meta: { 
+        requiresAuth: true,
+        title: 'Appointments - Iceberg Estates'
+      }
+    },
+    {
+      path: '/appointments/create',
+      name: 'create-appointment',
+      component: CreateAppointmentView,
+      meta: { 
+        requiresAuth: true,
+        title: 'Create Appointment - Iceberg Estates'
+      }
+    },
+    {
+      path: '/appointments/:id',
+      name: 'appointment-detail',
+      component: AppointmentDetailView,
+      meta: { 
+        requiresAuth: true,
+        title: 'Appointment Details - Iceberg Estates'
+      }
+    },
+    {
+      path: '/schedule',
+      name: 'schedule',
+      component: ScheduleView,
+      meta: { 
+        requiresAuth: true,
+        title: 'Schedule - Iceberg Estates'
+      }
+    },
+    {
+      path: '/profile',
+      name: 'profile',
+      component: ProfileView,
+      meta: { 
+        requiresAuth: true,
+        title: 'Profile - Iceberg Estates'
+      }
+    },
+    
+    // Catch-all route for 404
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'not-found',
+      component: () => import('@/views/NotFoundView.vue'),
+      meta: {
+        title: 'Page Not Found - Iceberg Estates'
+      }
+    }
+  ]
+})
+
+// Navigation guards - run before each route change
+router.beforeEach(async (to, from, next) => {
+  console.log(' Navigating to:', to.path)
+  
+  const authStore = useAuthStore()
+  
+  // Set page title
+  if (to.meta.title) {
+    document.title = to.meta.title
+  }
+  
+  // Check if route requires authentication
+  if (to.meta.requiresAuth) {
+    if (!authStore.isAuthenticated) {
+      console.log('Route requires authentication, redirecting to login')
+      next({
+        name: 'login',
+        query: { redirect: to.fullPath } // Save intended destination
+      })
+      return
+    }
+  }
+  
+  // If user is authenticated and trying to access login/register, redirect to dashboard
+  if (authStore.isAuthenticated && ['login', 'register'].includes(to.name)) {
+    console.log('User already authenticated, redirecting to dashboard')
+    next({ name: 'dashboard' })
+    return
+  }
+  
+  // Continue with navigation
+  next()
+})
+
+// After navigation completes
+router.afterEach((to, from) => {
+  console.log('Navigation completed:', to.path)
 })
 
 export default router
