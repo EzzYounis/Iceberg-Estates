@@ -2,14 +2,14 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 // Import views (we'll create these next)
-import LoginView from '@/views/LoginView.vue'
-import RegisterView from '@/views/RegisterView.vue'
-import DashboardView from '@/views/DashboardView.vue'
-import AppointmentsView from '@/views/AppointmentsView.vue'
-import AppointmentDetailView from '@/views/AppointmentDetailView.vue'
-import CreateAppointmentView from '@/views/CreateAppointmentView.vue'
-import ScheduleView from '@/views/ScheduleView.vue'
-import ProfileView from '@/views/ProfileView.vue'
+import LoginView from '@/components/ui/LoginView.vue'
+import RegisterView from '@/components/ui/RegisterView.vue'
+import DashboardView from '@/components/ui/DashboardView.vue'
+import AppointmentsView from '@/components/ui/AppointmentsView.vue'
+import AppointmentDetailView from '@/components/ui/AppointmentDetailView.vue'
+import CreateAppointmentView from '@/components/ui/CreateAppointmentView.vue'
+import ScheduleView from '@/components/ui/ScheduleView.vue'
+import ProfileView from '@/components/ui/ProfileView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -94,7 +94,7 @@ const router = createRouter({
     {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
-      component: () => import('@/views/NotFoundView.vue'),
+      component: () => import('@/components/ui/NotFoundView.vue'),
       meta: {
         title: 'Page Not Found - Iceberg Estates'
       }
