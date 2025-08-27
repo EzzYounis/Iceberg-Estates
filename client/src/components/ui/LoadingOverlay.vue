@@ -14,8 +14,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-
+import { ref, onMounted, onUnmounted } from 'vue'
 // Props
 const props = defineProps({
   message: {

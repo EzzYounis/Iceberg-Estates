@@ -13,7 +13,7 @@ const validateCreateAppointment = [
     .withMessage('Customer name can only contain letters, spaces, hyphens, apostrophes, and periods'),
     
   body('customerEmail')
-    .optional()
+    .optional({ checkFalsy: true })
     .isEmail()
     .withMessage('Please provide a valid email address')
     .normalizeEmail(),
