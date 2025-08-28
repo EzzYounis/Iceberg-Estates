@@ -10,6 +10,8 @@ import AppointmentDetailView from '@/components/ui/AppointmentDetailView.vue'
 import CreateAppointmentView from '@/components/ui/CreateAppointmentView.vue'
 import ScheduleView from '@/components/ui/ScheduleView.vue'
 import ProfileView from '@/components/ui/ProfileView.vue'
+import EditAppointmentView from '@/components/ui/EditAppointmentView.vue'
+
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -46,7 +48,7 @@ const router = createRouter({
     },
     {
       path: '/appointments',
-      name: 'appointments',
+      name: 'Appointments',
       component: AppointmentsView,
       meta: { 
         requiresAuth: true,
@@ -98,7 +100,16 @@ const router = createRouter({
       meta: {
         title: 'Page Not Found - Iceberg Estates'
       }
-    }
+    },
+    {
+    path: '/appointments/:id/edit',
+    name: 'EditAppointment',
+    component: EditAppointmentView,
+    meta: { 
+        requiresAuth: true,
+        title: 'Edit Appointment - Iceberg Estates'
+      }
+    },
   ]
 })
 

@@ -97,7 +97,7 @@ const validateUpdateAppointment = [
     .withMessage('Customer name must be between 2 and 100 characters'),
     
   body('customerEmail')
-    .optional()
+    .optional({ checkFalsy: true })
     .isEmail()
     .withMessage('Please provide a valid email address')
     .normalizeEmail(),
