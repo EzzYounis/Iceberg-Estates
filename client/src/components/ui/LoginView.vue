@@ -4,9 +4,7 @@
       <!-- Header -->
       <div class="text-center">
         <div class="flex justify-center mb-6">
-          <div class="h-16 w-16 bg-primary-600 rounded-xl flex items-center justify-center">
-            <span class="text-white font-bold text-2xl">I</span>
-          </div>
+          
         </div>
         <h2 class="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h2>
         <p class="text-gray-600">Sign in to your Iceberg Estates account</p>

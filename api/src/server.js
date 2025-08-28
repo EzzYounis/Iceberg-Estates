@@ -62,9 +62,11 @@ app.get('/', (req, res) => {
 });
 
 
+const agentRoutes = require('./routes/agentRoutes');
 //Authentication Routes : /api/auth/register  /api/auth/login  /api/auth/profile
 app.use('/api/auth', authRoutes);
 app.use('/api/appointments', appointmentRoutes); // Appointment routes 
+app.use('/api/agents', agentRoutes); // Agent routes
 
 
 

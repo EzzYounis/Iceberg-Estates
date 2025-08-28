@@ -54,48 +54,36 @@
           </router-link>
           
           <!-- User Dropdown -->
-          <div class="relative">
+          <div class="relative user-dropdown">
             <button
-              @click="showUserMenu = !showUserMenu"
+              @click="toggleUserMenu"
               class="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-colors"
             >
               <!-- User Avatar -->
               <div class="h-8 w-8 bg-primary-600 rounded-full flex items-center justify-center">
-                <span class="text-white text-sm font-medium">{{ authStore.userInitials }}</span>
+                <span class="text-white text-sm font-medium">{{ authStore.userInitials || 'U' }}</span>
               </div>
               
               <!-- User Name -->
               <span class="hidden sm:block text-sm font-medium text-gray-700">
-                {{ authStore.userFullName }}
+                {{ authStore.userFullName || 'User' }}
               </span>
               
               <!-- Dropdown Arrow -->
-              <ChevronDown class="w-4 h-4 text-gray-500" />
+              <ChevronDown class="w-4 h-4 text-gray-500 transition-transform" :class="{ 'rotate-180': showUserMenu }" />
             </button>
             
             <!-- Dropdown Menu -->
             <div
-              v-if="showUserMenu"
-              v-click-outside="() => showUserMenu = false"
-              class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50"
+              v-show="showUserMenu"
+              class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 animate-fade-in"
             >
-              <router-link
-                to="/profile"
-                class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                @click="showUserMenu = false"
-              >
-                <User class="w-4 h-4 mr-3" />
-                Profile Settings
-              </router-link>
-              
-              <hr class="my-1 border-gray-200">
-              
               <button
                 @click="handleLogout"
-                class="flex items-center w-full px-4 py-2 text-sm text-error-700 hover:bg-error-50"
+                class="flex items-center w-full px-4 py-2 text-sm text-red-700 hover:bg-red-50 transition-colors"
               >
                 <LogOut class="w-4 h-4 mr-3" />
-                Sign Out
+                Logout
               </button>
             </div>
           </div>
@@ -154,7 +142,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import {
@@ -176,9 +164,26 @@ const authStore = useAuthStore()
 const showUserMenu = ref(false)
 const showMobileMenu = ref(false)
 
+// Toggle user menu
+const toggleUserMenu = () => {
+  console.log('Profile clicked, current state:', showUserMenu.value)
+  showUserMenu.value = !showUserMenu.value
+  console.log('New state:', showUserMenu.value)
+}
+
+// Close user menu when clicking outside
+const closeUserMenu = () => {
+  if (showUserMenu.value) {
+    console.log('Closing user menu')
+    showUserMenu.value = false
+  }
+}
+
 // Handle logout
 const handleLogout = async () => {
   try {
+    showUserMenu.value = false // Close the dropdown
+    console.log('Logging out...')
     authStore.logout()
     await router.push('/login')
   } catch (error) {
@@ -186,18 +191,19 @@ const handleLogout = async () => {
   }
 }
 
-// Click outside directive (we'll create this next)
-const vClickOutside = {
-  mounted(el, binding) {
-    el.clickOutsideEvent = (event) => {
-      if (!(el === event.target || el.contains(event.target))) {
-        binding.value()
-      }
-    }
-    document.addEventListener('click', el.clickOutsideEvent)
-  },
-  unmounted(el) {
-    document.removeEventListener('click', el.clickOutsideEvent)
+// Click outside handler
+const handleClickOutside = (event) => {
+  const dropdown = event.target.closest('.user-dropdown')
+  if (!dropdown && showUserMenu.value) {
+    closeUserMenu()
   }
 }
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 </script>

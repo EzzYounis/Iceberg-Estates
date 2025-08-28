@@ -162,6 +162,9 @@
                       <span :class="getStatusClass(appointment.status)">
                         {{ formatStatus(appointment.status) }}
                       </span>
+                      <span v-if="appointment.agent" class="ml-2 text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                        Agent: {{ appointment.agent.firstName }} {{ appointment.agent.lastName }}
+                      </span>
                     </div>
 
                     <div class="space-y-2">

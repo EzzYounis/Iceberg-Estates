@@ -160,29 +160,6 @@
           </div>
         </div>
 
-        <!-- Quick Actions -->
-        <div class="card mt-6">
-          <div class="card-header">
-            <h2 class="text-lg font-semibold text-gray-900">Quick Actions</h2>
-          </div>
-          
-          <div class="card-body space-y-3">
-            <router-link to="/appointments/create" class="btn-primary w-full">
-              <Plus class="w-4 h-4 mr-2" />
-              New Appointment
-            </router-link>
-            
-            <router-link to="/appointments" class="btn-outline w-full">
-              <Calendar class="w-4 h-4 mr-2" />
-              View All Appointments
-            </router-link>
-            
-            <router-link to="/schedule" class="btn-outline w-full">
-              <Clock class="w-4 h-4 mr-2" />
-              Today's Schedule
-            </router-link>
-          </div>
-        </div>
       </div>
     </div>
   </div>

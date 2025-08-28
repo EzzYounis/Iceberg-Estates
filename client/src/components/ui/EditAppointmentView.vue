@@ -40,6 +40,31 @@
         <input v-model="form.appointmentTime" class="input" type="time" required />
       </div>
       <div class="mb-4">
+        <label class="block mb-1 font-semibold">Agent</label>
+        <div style="position:relative;">
+          <input
+            v-model="agentSearch"
+            type="text"
+            placeholder="Type to search and select agent..."
+            class="input"
+            :disabled="agentLoading"
+            @focus="showAgentList = true"
+            @input="showAgentList = true"
+            @blur="() => setTimeout(() => showAgentList = false, 150)"
+          />
+          <ul v-if="showAgentList && filteredAgents.length > 0" class="absolute z-10 bg-white border w-full mt-1 rounded shadow max-h-48 overflow-auto">
+            <li
+              v-for="agent in filteredAgents"
+              :key="agent.id"
+              @mousedown.prevent="selectAgent(agent)"
+              :class="['px-3 py-2 cursor-pointer hover:bg-primary-50', String(agent.id) === String(form.agentId) ? 'bg-primary-100 font-semibold' : '']"
+            >
+              {{ agent.firstName }} {{ agent.lastName }}
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div class="mb-4">
         <label class="block mb-1 font-semibold">Notes</label>
         <textarea v-model="form.notes" class="input" rows="3"></textarea>
       </div>
@@ -61,6 +86,13 @@ const route = useRoute();
 const router = useRouter();
 const id = route.params.id;
 
+import apiClient, { API_ENDPOINTS } from '@/config/api';
+import { computed, watch } from 'vue';
+const agents = ref([]);
+const agentSearch = ref('');
+const agentLoading = ref(false);
+const showAgentList = ref(false);
+const appointmentLoaded = ref(false);
 const form = ref({
   customerName: '',
   customerEmail: '',
@@ -70,33 +102,89 @@ const form = ref({
   appointmentDate: '',
   appointmentTime: '',
   notes: '',
-  status: 'scheduled'
+  status: 'scheduled',
+  agentId: ''
+});
+function selectAgent(agent) {
+  form.value.agentId = agent.id;
+  agentSearch.value = agent.firstName + ' ' + agent.lastName;
+  showAgentList.value = false;
+}
+
+const filteredAgents = computed(() => {
+  if (!agentSearch.value) return agents.value;
+  return agents.value.filter(a =>
+    (a.firstName + ' ' + a.lastName).toLowerCase().includes(agentSearch.value.toLowerCase())
+  );
+});
+
+watch(agentSearch, (val) => {
+  if (!val) form.value.agentId = '';
 });
 const error = ref('');
 
 onMounted(async () => {
   try {
-          const { data } = await api.get(`/api/appointments/${id}`);
-          console.log('Full API response:', data);
-          if (!data.data || !data.data.appointment) {
-            error.value = 'Appointment data missing from API response.';
-            return;
-          }
-          const apt = data.data.appointment;
-          form.value.customerName = apt.customerName || '';
-          form.value.customerEmail = apt.customerEmail || '';
-          if (form.value.customerEmail === null) form.value.customerEmail = '';
-          form.value.customerPhone = apt.customerPhone || '';
-          form.value.propertyAddress = apt.propertyAddress || '';
-          form.value.propertyPostcode = apt.propertyPostcode || '';
-          form.value.appointmentDate = apt.appointmentDate ? apt.appointmentDate.slice(0, 10) : '';
-          form.value.appointmentTime = apt.appointmentTime ? apt.appointmentTime.slice(0, 5) : '';
-          form.value.notes = apt.notes || '';
-          form.value.status = apt.status || 'scheduled';
+    // Fetch agents first
+    agentLoading.value = true;
+    const agentRes = await apiClient.get(API_ENDPOINTS.AGENTS.BASE);
+    agents.value = agentRes.data?.data?.agents || agentRes.data?.agents || [];
+    agentLoading.value = false;
+
+    // Fetch appointment
+    const { data } = await api.get(`/api/appointments/${id}`);
+    if (!data.data || !data.data.appointment) {
+      error.value = 'Appointment data missing from API response.';
+      return;
+    }
+    const apt = data.data.appointment;
+    form.value.customerName = apt.customerName || '';
+    form.value.customerEmail = apt.customerEmail || '';
+    if (form.value.customerEmail === null) form.value.customerEmail = '';
+    form.value.customerPhone = apt.customerPhone || '';
+    form.value.propertyAddress = apt.propertyAddress || '';
+    form.value.propertyPostcode = apt.propertyPostcode || '';
+    form.value.appointmentDate = apt.appointmentDate ? apt.appointmentDate.slice(0, 10) : '';
+    form.value.appointmentTime = apt.appointmentTime ? apt.appointmentTime.slice(0, 5) : '';
+    form.value.notes = apt.notes || '';
+    form.value.status = apt.status || 'scheduled';
+    // Fix: The API returns userId as the agent ID, not agentId
+    form.value.agentId = apt.userId ? String(apt.userId) : '';
+    appointmentLoaded.value = true;
+    
+    // Set agentSearch based on the assigned agent
+    if (form.value.agentId && agents.value.length > 0) {
+      const found = agents.value.find(a => String(a.id) === String(form.value.agentId));
+      if (found) {
+        agentSearch.value = found.firstName + ' ' + found.lastName;
+      } else {
+        agentSearch.value = '';
+      }
+      console.log('Set agentSearch after appointment fetch:', agentSearch.value, 'agentId:', form.value.agentId, 'found agent:', found);
+    } else if (apt.agent) {
+      // If we have the agent info directly from the appointment
+      form.value.agentId = String(apt.agent.id);
+      agentSearch.value = apt.agent.firstName + ' ' + apt.agent.lastName;
+      console.log('Set agentSearch from apt.agent:', agentSearch.value, 'agentId:', form.value.agentId);
+    }
   } catch (err) {
     error.value = 'Failed to load appointment.';
   }
 });
+
+// Always update agentSearch when agentId or agents change
+watch([
+  () => agents.value.length,
+  () => form.value.agentId
+], ([agentsLen, agentId]) => {
+  if (agentId && agentsLen > 0) {
+    const found = agents.value.find(a => String(a.id) === String(agentId));
+    agentSearch.value = found ? (found.firstName + ' ' + found.lastName) : '';
+    console.log('Watcher updated agentSearch:', agentSearch.value, 'for agentId:', agentId);
+  } else {
+    agentSearch.value = '';
+  }
+}, { immediate: true });
 
 async function submitEdit() {
   error.value = '';
@@ -106,7 +194,15 @@ async function submitEdit() {
     Object.keys(payload).forEach(key => {
       if (typeof payload[key] === 'string') payload[key] = payload[key].trim();
     });
-  if (!payload.customerEmail) delete payload.customerEmail;
+    if (!payload.customerEmail) delete payload.customerEmail;
+    
+    // Convert agentId back to userId for the API
+    if (payload.agentId) {
+      payload.userId = payload.agentId;
+      delete payload.agentId;
+    }
+    
+    console.log('Submitting appointment update:', payload);
     await api.put(`/api/appointments/${id}`, payload);
     router.push({ name: 'Appointments' });
   } catch (err) {

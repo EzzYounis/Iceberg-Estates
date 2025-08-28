@@ -190,6 +190,45 @@
         </div>
       </div>
 
+      <!-- Agent Selection -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+            <User class="w-5 h-5 mr-2" />
+            Assign Agent
+          </h2>
+          <p class="text-sm text-gray-600 mt-1">Select the agent responsible for this appointment</p>
+        </div>
+        <div class="card-body">
+          <div class="form-group" style="position:relative;">
+            <label for="agentCombo" class="form-label">Agent *</label>
+            <input
+              id="agentCombo"
+              v-model="agentSearch"
+              type="text"
+              placeholder="Type to search and select agent..."
+              class="w-full border rounded px-2 py-1"
+              :disabled="agentLoading"
+              @focus="showAgentList = true"
+              @input="showAgentList = true"
+              @blur="() => setTimeout(() => showAgentList = false, 150)"
+            />
+            <ul v-if="showAgentList && filteredAgents.length > 0" class="absolute z-10 bg-white border w-full mt-1 rounded shadow max-h-48 overflow-auto">
+              <li
+                v-for="agent in filteredAgents"
+                :key="agent.id"
+                @mousedown.prevent="selectAgent(agent)"
+                :class="['px-3 py-2 cursor-pointer hover:bg-primary-50', agent.id === form.agentId ? 'bg-primary-100 font-semibold' : '']"
+              >
+                {{ agent.firstName }} {{ agent.lastName }}
+              </li>
+            </ul>
+            <p v-if="agentError" class="form-error">{{ agentError }}</p>
+            <p v-if="fieldErrors.agentId" class="form-error">{{ fieldErrors.agentId }}</p>
+          </div>
+        </div>
+      </div>
+
       <!-- Appointment Timing -->
       <div class="card">
         <div class="card-header">
@@ -414,7 +453,17 @@ const travelInfo = ref(null)
 const schedulePreview = ref(null)
 const showPreview = ref(false)
 
-// Form data
+import apiClient, { API_ENDPOINTS } from '@/config/api'
+const agents = ref([])
+const agentSearch = ref('')
+const agentLoading = ref(false)
+const agentError = ref('')
+const showAgentList = ref(false)
+function selectAgent(agent) {
+  form.agentId = agent.id
+  agentSearch.value = agent.firstName + ' ' + agent.lastName
+  showAgentList.value = false
+}
 const form = reactive({
   customerName: '',
   customerPhone: '',
@@ -423,7 +472,8 @@ const form = reactive({
   propertyPostcode: '',
   appointmentDate: '',
   appointmentTime: '',
-  notes: ''
+  notes: '',
+  agentId: ''
 })
 
 // Computed properties
@@ -442,13 +492,27 @@ const availableTimes = computed(() => {
   return times
 })
 
+const filteredAgents = computed(() => {
+  if (!agentSearch.value) return agents.value
+  return agents.value.filter(a =>
+    (a.firstName + ' ' + a.lastName).toLowerCase().includes(agentSearch.value.toLowerCase())
+  )
+})
+
+import { watch } from 'vue'
+// Keep agentId and agentSearch in sync if user clears the input
+watch(agentSearch, (val) => {
+  if (!val) form.agentId = ''
+})
+
 const isFormValid = computed(() => {
   return form.customerName && 
          form.customerPhone && 
          form.propertyAddress && 
          form.propertyPostcode && 
          form.appointmentDate && 
-         form.appointmentTime
+         form.appointmentTime &&
+         form.agentId
 })
 
 // Helper functions
@@ -550,7 +614,8 @@ const handleSubmit = async () => {
       propertyPostcode: form.propertyPostcode.trim().toUpperCase(),
       appointmentDate: form.appointmentDate,
       appointmentTime: form.appointmentTime,
-      notes: form.notes.trim() || null
+      notes: form.notes.trim() || null,
+      agentId: form.agentId
     }
     
     const result = await appointmentsStore.createAppointment(appointmentData)
@@ -578,10 +643,25 @@ const handleSubmit = async () => {
 }
 
 // Watch for form changes to update schedule preview
-onMounted(() => {
+onMounted(async () => {
   // Set default date to tomorrow
   form.appointmentDate = format(addDays(new Date(), 1), 'yyyy-MM-dd')
-  
+  // Fetch agents
+  agentLoading.value = true
+  try {
+    const res = await apiClient.get(API_ENDPOINTS.AGENTS.BASE)
+    agents.value = res.data?.data?.agents || res.data?.agents || []
+    // Default to first agent if available
+    if (agents.value.length > 0) {
+      form.agentId = agents.value[0].id
+      agentSearch.value = agents.value[0].firstName + ' ' + agents.value[0].lastName
+    }
+  } catch (e) {
+    agentError.value = 'Failed to load agents.'
+    agents.value = []
+  } finally {
+    agentLoading.value = false
+  }
   // Watch for time changes
   let timeoutId = null
   const watchFormChanges = () => {
@@ -592,7 +672,6 @@ onMounted(() => {
       }
     }, 300)
   }
-  
   // You would set up watchers here in a real Vue component
   console.log('🗓️ Create appointment form initialized')
 })

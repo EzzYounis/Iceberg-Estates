@@ -181,14 +181,12 @@ const getAppointments = async (req, res) => {
       offset = 0
     } = req.query;
     
-    // Build where clause 
-    const whereClause = { userId: req.userId };
-    
+    // Build where clause (no userId filter, show all appointments)
+    const whereClause = {};
     // Filter by status if provided
     if (status) {
       whereClause.status = status;
     }
-    
     // Filter by date range
     if (date) {
       whereClause.appointmentDate = date;
@@ -205,9 +203,7 @@ const getAppointments = async (req, res) => {
         [Op.lte]: endDate
       };
     }
-    
     console.log('Query filters:', whereClause);
-    
     // Get appointments with agent information
     const appointments = await Appointment.findAndCountAll({
       where: whereClause,
@@ -258,10 +254,7 @@ const getAppointmentById = async (req, res) => {
     console.log('Getting appointment:', id);
     
     const appointment = await Appointment.findOne({
-      where: {
-        id,
-        userId: req.userId // Ensure user can only access their own appointments
-      },
+      where: { id },
       include: [{
         model: User,
         as: 'agent',
@@ -307,10 +300,7 @@ const updateAppointment = async (req, res) => {
     
     // Find the appointment
     const appointment = await Appointment.findOne({
-      where: {
-        id,
-        userId: req.userId
-      }
+      where: { id }
     });
     
     if (!appointment) {
@@ -375,7 +365,7 @@ const updateAppointment = async (req, res) => {
       
       // Check for conflicts (excluding this appointment)
       const conflictCheck = await Appointment.checkConflicts(
-        req.userId,
+        appointment.userId,
         newDate,
         schedule.departureTime,
         schedule.availableAgainTime,
@@ -449,10 +439,7 @@ const deleteAppointment = async (req, res) => {
     console.log('🗑️ Deleting appointment:', id);
     
     const appointment = await Appointment.findOne({
-      where: {
-        id,
-        userId: req.userId
-      }
+      where: { id }
     });
     
     if (!appointment) {
@@ -502,7 +489,6 @@ const getDaySchedule = async (req, res) => {
     
     const appointments = await Appointment.findAll({
       where: {
-        userId: req.userId,
         appointmentDate: date,
         status: ['scheduled'] // Only scheduled appointments
       },

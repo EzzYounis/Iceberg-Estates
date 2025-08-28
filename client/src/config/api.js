@@ -70,6 +70,10 @@ export const API_ENDPOINTS = {
     BASE: '/api/appointments',
     BY_ID: (id) => `/api/appointments/${id}`,
     SCHEDULE: (date) => `/api/appointments/schedule/${date}`
+  },
+  // Agents
+  AGENTS: {
+    BASE: '/api/agents'
   }
   
  
