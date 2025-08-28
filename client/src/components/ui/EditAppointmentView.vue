@@ -3,6 +3,15 @@
     <h1 class="text-2xl font-bold mb-4">Edit Appointment</h1>
     <form @submit.prevent="submitEdit">
       <div class="mb-4">
+        <label class="block mb-1 font-semibold">Status</label>
+        <select v-model="form.status" class="input">
+          <option value="scheduled">Scheduled</option>
+          <option value="completed">Completed</option>
+          <option value="cancelled">Cancelled</option>
+          <option value="no_show">No Show</option>
+        </select>
+      </div>
+      <div class="mb-4">
         <label class="block mb-1 font-semibold">Customer Name</label>
         <input v-model="form.customerName" class="input" required />
       </div>
@@ -60,7 +69,8 @@ const form = ref({
   propertyPostcode: '',
   appointmentDate: '',
   appointmentTime: '',
-  notes: ''
+  notes: '',
+  status: 'scheduled'
 });
 const error = ref('');
 
@@ -82,6 +92,7 @@ onMounted(async () => {
           form.value.appointmentDate = apt.appointmentDate ? apt.appointmentDate.slice(0, 10) : '';
           form.value.appointmentTime = apt.appointmentTime ? apt.appointmentTime.slice(0, 5) : '';
           form.value.notes = apt.notes || '';
+          form.value.status = apt.status || 'scheduled';
   } catch (err) {
     error.value = 'Failed to load appointment.';
   }
