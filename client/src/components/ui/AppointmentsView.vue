@@ -138,7 +138,7 @@
         <div
           v-for="appointment in paginatedAppointments"
           :key="appointment.id"
-          class="card hover:shadow-md transition-shadow duration-200"
+          class="card hover:shadow-md transition-shadow duration-200 relative"
         >
           <div class="card-body">
             <div class="flex items-start justify-between">
@@ -152,7 +152,6 @@
                       :class="getStatusColor(appointment.status)"
                     ></div>
                   </div>
-
                   <!-- Details -->
                   <div class="flex-1">
                     <div class="flex items-center space-x-3 mb-2">
@@ -166,35 +165,29 @@
                         Agent: {{ appointment.agent.firstName }} {{ appointment.agent.lastName }}
                       </span>
                     </div>
-
                     <div class="space-y-2">
                       <div class="flex items-center text-gray-600">
                         <MapPin class="w-4 h-4 mr-2 flex-shrink-0" />
                         <span>{{ appointment.propertyAddress }}</span>
                       </div>
-
                       <div class="flex items-center text-gray-600">
                         <Calendar class="w-4 h-4 mr-2 flex-shrink-0" />
                         <span>{{ formatDateTime(appointment.appointmentDate, appointment.appointmentTime) }}</span>
                       </div>
-
                       <div class="flex items-center space-x-6 text-sm text-gray-500">
                         <div class="flex items-center">
                           <Phone class="w-4 h-4 mr-1" />
                           <span>{{ appointment.customerPhone }}</span>
                         </div>
-                        
                         <div v-if="appointment.customerEmail" class="flex items-center">
                           <Mail class="w-4 h-4 mr-1" />
                           <span>{{ appointment.customerEmail }}</span>
                         </div>
-                        
                         <div class="flex items-center">
                           <Navigation class="w-4 h-4 mr-1" />
                           <span>{{ appointment.distanceKm }}km away</span>
                         </div>
                       </div>
-
                       <div v-if="appointment.notes" class="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg mt-3">
                         <strong>Notes:</strong> {{ appointment.notes }}
                       </div>
@@ -202,79 +195,72 @@
                   </div>
                 </div>
               </div>
-
-                  <!-- Actions -->
-                  <div class="flex-shrink-0 ml-6">
-                    <div class="flex items-center space-x-2">
-                      <!-- View Details -->
-                      <router-link
-                        :to="`/appointments/${appointment.id}`"
-                        class="p-2 text-gray-400 hover:text-primary-600 rounded-lg hover:bg-primary-50"
-                        title="View Details"
-                      >
-                        <Eye class="w-4 h-4" />
-                      </router-link>
-
-                      <!-- Edit -->
+              <!-- Actions -->
+              <div class="flex-shrink-0 ml-6 flex flex-col items-end">
+                <div class="flex items-center space-x-2">
+                  <!-- View Details -->
+                  <router-link
+                    :to="`/appointments/${appointment.id}`"
+                    class="p-2 text-gray-400 hover:text-primary-600 rounded-lg hover:bg-primary-50"
+                    title="View Details"
+                  >
+                    <Eye class="w-4 h-4" />
+                  </router-link>
+                  <!-- Edit -->
+                  <button
+                    @click="editAppointment(appointment)"
+                    class="p-2 text-gray-400 hover:text-primary-600 rounded-lg hover:bg-primary-50"
+                    title="Edit Appointment"
+                  >
+                    <Edit class="w-4 h-4" />
+                  </button>
+                  <!-- Delete -->
+                  <button
+                    @click="confirmDelete(appointment)"
+                    class="p-2 text-gray-400 hover:text-error-600 rounded-lg hover:bg-error-50"
+                    title="Delete Appointment"
+                  >
+                    <Trash2 class="w-4 h-4" />
+                  </button>
+                  <!-- Status Actions -->
+                  <div class="relative">
+                    <button
+                      @click="toggleStatusMenu(appointment.id)"
+                      class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+                      title="Change Status"
+                    >
+                      <MoreVertical class="w-4 h-4" />
+                    </button>
+                    <!-- Status Dropdown -->
+                    <div
+                      v-if="activeStatusMenu === appointment.id"
+                      v-click-outside="() => activeStatusMenu = null"
+                      class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10"
+                    >
                       <button
-                        @click="editAppointment(appointment)"
-                        class="p-2 text-gray-400 hover:text-primary-600 rounded-lg hover:bg-primary-50"
-                        title="Edit Appointment"
+                        v-for="status in availableStatuses"
+                        :key="status.value"
+                        @click="updateStatus(appointment, status.value)"
+                        class="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        :class="{ 'bg-primary-50 text-primary-700': appointment.status === status.value }"
                       >
-                        <Edit class="w-4 h-4" />
+                        <span :class="status.color" class="w-2 h-2 rounded-full mr-3"></span>
+                        {{ status.label }}
                       </button>
-
-                      <!-- Delete -->
-                      <button
-                        @click="confirmDelete(appointment)"
-                        class="p-2 text-gray-400 hover:text-error-600 rounded-lg hover:bg-error-50"
-                        title="Delete Appointment"
-                      >
-                        <Trash2 class="w-4 h-4" />
-                      </button>
-
-                      <!-- Assign/Claim for Unassigned -->
-                      <template v-if="appointment.status === 'unassigned'">
-                        <button @click="openAssignPopup(appointment)" class="btn-primary btn-xs">Assign To</button>
-                        <button @click="claimAppointment(appointment)" class="btn-success btn-xs">Claim</button>
-                      </template>
-
-                      <!-- Status Actions -->
-                      <div class="relative">
-                        <button
-                          @click="toggleStatusMenu(appointment.id)"
-                          class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
-                          title="Change Status"
-                        >
-                          <MoreVertical class="w-4 h-4" />
-                        </button>
-
-                        <!-- Status Dropdown -->
-                        <div
-                          v-if="activeStatusMenu === appointment.id"
-                          v-click-outside="() => activeStatusMenu = null"
-                          class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10"
-                        >
-                          <button
-                            v-for="status in availableStatuses"
-                            :key="status.value"
-                            @click="updateStatus(appointment, status.value)"
-                            class="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                            :class="{ 'bg-primary-50 text-primary-700': appointment.status === status.value }"
-                          >
-                            <span :class="status.color" class="w-2 h-2 rounded-full mr-3"></span>
-                            {{ status.label }}
-                          </button>
-                        </div>
-                      </div>
                     </div>
-
                   </div>
+                </div>
+                <!-- Assign/Claim for Unassigned, bottom right -->
+                <div v-if="appointment.status === 'unassigned'" class="absolute bottom-4 right-4 flex flex-col space-y-2 z-10">
+                  <button @click="openAssignPopup(appointment)" class="btn-primary btn-xs">Assign To</button>
+                  <button @click="claimAppointment(appointment)" class="btn-success btn-xs">Claim</button>
                 </div>
               </div>
             </div>
           </div>
         </div>
+      </div>
+      </div>
 
     <!-- Assign Agent Popup -->
     <div v-if="showAssignPopup" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
