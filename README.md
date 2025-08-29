@@ -22,7 +22,7 @@ A comprehensive real estate appointment management system built with Vue.js fron
 ## 🔍 Project Overview
 
 Iceberg Estates is a modern web application designed for estate agents to efficiently manage property viewing appointments. The system automatically calculates travel times between the office and property locations, optimizes agent schedules, and provides a comprehensive dashboard for appointment management.
-
+## 🔍 Project Overview
 ![Dashboard Tab](images/Dashboard.png)
 ![Appointments Tab](images/Appointments.png)
 ![Schedule Tab](images/Schedule.png)
