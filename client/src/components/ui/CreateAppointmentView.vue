@@ -541,23 +541,22 @@ const formatDateTime = (date, time) => {
 // Validation functions
 const validatePostcode = async () => {
   if (!form.propertyPostcode) return
-  
+
   isValidatingPostcode.value = true
   postcodeStatus.value = ''
-  
+  travelInfo.value = null
+  schedulePreview.value = null
+
   try {
-    // This would normally call your API to validate postcode
-    // For now, we'll simulate validation
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    // Simple UK postcode pattern validation
-    const postcodePattern = /^[A-Z]{1,2}[0-9][A-Z0-9]?\s?[0-9][A-Z]{2}$/i
-    
-    if (postcodePattern.test(form.propertyPostcode.trim())) {
+    // Call backend API to validate postcode and get travel info
+    const response = await apiClient.post('/api/validate-postcode', {
+      postcode: form.propertyPostcode.trim()
+    })
+    if (response.data && response.data.success && response.data.data) {
       postcodeStatus.value = 'valid'
       travelInfo.value = {
-        distance: '12.5',
-        travelTime: '25'
+        distance: response.data.data.distanceKm || response.data.data.distance || 'N/A',
+        travelTime: response.data.data.travelTimeMinutes || response.data.data.travelTime || 'N/A'
       }
       updateSchedulePreview()
     } else {
@@ -565,9 +564,15 @@ const validatePostcode = async () => {
       travelInfo.value = null
       schedulePreview.value = null
     }
-    
   } catch (error) {
-    postcodeStatus.value = 'error'
+    postcodeStatus.value = 'invalid'
+    travelInfo.value = null
+    schedulePreview.value = null
+    if (error.response && error.response.data && error.response.data.message) {
+      fieldErrors.propertyPostcode = error.response.data.message
+    } else {
+      fieldErrors.propertyPostcode = 'Invalid postcode or postcode not found.'
+    }
     console.error('Postcode validation failed:', error)
   } finally {
     isValidatingPostcode.value = false
