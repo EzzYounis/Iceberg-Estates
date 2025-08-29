@@ -180,9 +180,15 @@ const appointmentsStore = useAppointmentsStore()
 const isLoadingToday = ref(true)
 const isLoadingUpcoming = ref(true)
 
-// Computed properties
-const todayAppointments = computed(() => appointmentsStore.todayAppointments)
-const upcomingAppointments = computed(() => appointmentsStore.upcomingAppointments)
+// Computed properties (only show appointments for the logged-in user)
+const todayAppointments = computed(() => {
+  if (!authStore.user) return [];
+  return appointmentsStore.todayAppointments.filter(apt => String(apt.userId) === String(authStore.user.id));
+});
+const upcomingAppointments = computed(() => {
+  if (!authStore.user) return [];
+  return appointmentsStore.upcomingAppointments.filter(apt => String(apt.userId) === String(authStore.user.id));
+});
 const appointmentStats = computed(() => appointmentsStore.appointmentStats)
 
 // Calculate today's stats

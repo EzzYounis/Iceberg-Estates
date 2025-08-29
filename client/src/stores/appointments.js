@@ -96,12 +96,14 @@ export const useAppointmentsStore = defineStore('appointments', {
       const scheduled = state.appointments.filter(apt => apt.status === 'scheduled').length
       const completed = state.appointments.filter(apt => apt.status === 'completed').length
       const cancelled = state.appointments.filter(apt => apt.status === 'cancelled').length
+      const unassigned = state.appointments.filter(apt => apt.status === 'unassigned').length
       
       return {
         total,
         scheduled,
         completed,
         cancelled,
+        unassigned,
         completionRate: total > 0 ? Math.round((completed / total) * 100) : 0
       }
     }

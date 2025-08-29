@@ -201,7 +201,7 @@
         </div>
         <div class="card-body">
           <div class="form-group" style="position:relative;">
-            <label for="agentCombo" class="form-label">Agent *</label>
+            <label for="agentCombo" class="form-label">Agent</label>
             <input
               id="agentCombo"
               v-model="agentSearch"
@@ -223,6 +223,8 @@
                 {{ agent.firstName }} {{ agent.lastName }}
               </li>
             </ul>
+            <button type="button" class="btn-outline mt-2" @click="assignLater">Assign Later</button>
+            <p class="form-help">Leave blank or click 'Assign Later' to create an unassigned appointment.</p>
             <p v-if="agentError" class="form-error">{{ agentError }}</p>
             <p v-if="fieldErrors.agentId" class="form-error">{{ fieldErrors.agentId }}</p>
           </div>
@@ -473,7 +475,7 @@ const form = reactive({
   appointmentDate: '',
   appointmentTime: '',
   notes: '',
-  agentId: ''
+  agentId: '' // null or '' means unassigned
 })
 
 // Computed properties
@@ -511,9 +513,13 @@ const isFormValid = computed(() => {
          form.propertyAddress && 
          form.propertyPostcode && 
          form.appointmentDate && 
-         form.appointmentTime &&
-         form.agentId
+         form.appointmentTime
 })
+function assignLater() {
+  form.agentId = ''
+  agentSearch.value = ''
+  showAgentList.value = false
+}
 
 // Helper functions
 const formatTime = (time) => {
@@ -615,7 +621,7 @@ const handleSubmit = async () => {
       appointmentDate: form.appointmentDate,
       appointmentTime: form.appointmentTime,
       notes: form.notes.trim() || null,
-      agentId: form.agentId
+      agentId: form.agentId || null // send null if unassigned
     }
     
     const result = await appointmentsStore.createAppointment(appointmentData)

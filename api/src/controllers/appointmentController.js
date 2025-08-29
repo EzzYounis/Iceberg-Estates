@@ -18,7 +18,8 @@ const createAppointment = async (req, res) => {
       propertyPostcode,
       appointmentDate,
       appointmentTime,
-      notes
+      notes,
+      agentId // allow agentId to be null for unassigned
     } = req.body;
     
     console.log('Appointment details:');
@@ -45,61 +46,59 @@ const createAppointment = async (req, res) => {
       travelInfo.travelTimeMinutes
     );
     
-    // Step 4: Check for conflicts with existing appointments
-    console.log('Step 4: Checking for conflicts...');
-    const conflictCheck = await Appointment.checkConflicts(
-      req.userId,
-      appointmentDate,
-      schedule.departureTime,
-      schedule.availableAgainTime
-    );
-    
-    if (conflictCheck.hasConflict) {
-      console.log('Appointment conflict detected');
-      return res.status(409).json({
-        error: true,
-        message: 'Appointment conflict detected',
-        details: conflictCheck.message,
-        conflictingAppointment: {
-          id: conflictCheck.conflictingAppointment.id,
-          customer: conflictCheck.conflictingAppointment.customerName,
-          time: conflictCheck.conflictingAppointment.appointmentTime
-        }
-      });
+    let assignedUserId = agentId || null;
+    let status = assignedUserId ? 'scheduled' : 'unassigned';
+
+    // Only check for conflicts if assigned to an agent
+    if (assignedUserId) {
+      console.log('Step 4: Checking for conflicts...');
+      const conflictCheck = await Appointment.checkConflicts(
+        assignedUserId,
+        appointmentDate,
+        schedule.departureTime,
+        schedule.availableAgainTime
+      );
+      if (conflictCheck.hasConflict) {
+        console.log('Appointment conflict detected');
+        return res.status(409).json({
+          error: true,
+          message: 'Appointment conflict detected',
+          details: conflictCheck.message,
+          conflictingAppointment: {
+            id: conflictCheck.conflictingAppointment.id,
+            customer: conflictCheck.conflictingAppointment.customerName,
+            time: conflictCheck.conflictingAppointment.appointmentTime
+          }
+        });
+      }
+      console.log('No conflicts found');
     }
-    
-    console.log('No conflicts found');
-    
+
     // Step 5: Create the appointment with all calculated data
     console.log('Step 5: Creating appointment in database...');
     const newAppointment = await Appointment.create({
-      userId: req.userId,
-      
+      userId: assignedUserId,
       // Customer information
       customerName,
       customerEmail: customerEmail || null,
       customerPhone,
-      
       // Property information
       propertyAddress,
       propertyPostcode: propertyCoords.postcode, // Use cleaned postcode
       propertyLatitude: propertyCoords.latitude,
       propertyLongitude: propertyCoords.longitude,
-      
       // Appointment timing
       appointmentDate,
       appointmentTime,
-      
       // Calculated travel information
       distanceKm: travelInfo.distanceKm,
       travelTimeMinutes: travelInfo.travelTimeMinutes,
       departureTime: schedule.departureTime,
       returnTime: schedule.returnTime,
       availableAgainTime: schedule.availableAgainTime,
-      
       // Additional information
       notes: notes || null,
-      status: 'scheduled'
+      status
     });
     
     console.log('Appointment created successfully:', newAppointment.id);
@@ -323,7 +322,8 @@ const updateAppointment = async (req, res) => {
       appointmentDate,
       appointmentTime,
       notes,
-      status
+      status,
+      agentId // allow agentId to be updated
     } = req.body;
     
     // Check if time/date/location changed (requires recalculation)
@@ -340,17 +340,29 @@ const updateAppointment = async (req, res) => {
     if (customerPhone) updatedData.customerPhone = customerPhone;
     if (propertyAddress) updatedData.propertyAddress = propertyAddress;
     if (notes !== undefined) updatedData.notes = notes;
-    if (status) updatedData.status = status;
+
+    // Handle agent assignment/unassignment
+    if (agentId !== undefined) {
+      updatedData.userId = agentId || null;
+      if (agentId) {
+        updatedData.status = 'scheduled';
+      } else {
+        updatedData.status = 'unassigned';
+      }
+    } else if (status) {
+      updatedData.status = status;
+    }
     
-    // If time/date/location changed, recalculate travel info
-    if (timeChanged || dateChanged || locationChanged) {
-      console.log('Time/date/location changed, recalculating...');
+    // If time/date/location/agent changed, recalculate travel info and check conflicts
+    if (timeChanged || dateChanged || locationChanged || agentId !== undefined) {
+      console.log('Time/date/location/agent changed, recalculating...');
       recalculateTravel = true;
-      
+
       const newPostcode = propertyPostcode || appointment.propertyPostcode;
       const newDate = appointmentDate || appointment.appointmentDate;
       const newTime = appointmentTime || appointment.appointmentTime;
-      
+      const newAgentId = agentId !== undefined ? agentId : appointment.userId;
+
       // Validate new postcode if changed
       if (locationChanged) {
         const propertyCoords = await postcodeService.getCoordinates(newPostcode);
@@ -358,28 +370,30 @@ const updateAppointment = async (req, res) => {
         updatedData.propertyLatitude = propertyCoords.latitude;
         updatedData.propertyLongitude = propertyCoords.longitude;
       }
-      
+
       // Recalculate travel information
       const travelInfo = await travelTimeService.calculateTravelInfo(newPostcode);
       const schedule = travelTimeService.calculateScheduleTimes(newTime, travelInfo.travelTimeMinutes);
-      
-      // Check for conflicts (excluding this appointment)
-      const conflictCheck = await Appointment.checkConflicts(
-        appointment.userId,
-        newDate,
-        schedule.departureTime,
-        schedule.availableAgainTime,
-        id // Exclude this appointment from conflict check
-      );
-      
-      if (conflictCheck.hasConflict) {
-        return res.status(409).json({
-          error: true,
-          message: 'Appointment conflict detected',
-          details: conflictCheck.message
-        });
+
+      // Only check for conflicts if assigning to an agent
+      if (newAgentId) {
+        const conflictCheck = await Appointment.checkConflicts(
+          newAgentId,
+          newDate,
+          schedule.departureTime,
+          schedule.availableAgainTime,
+          id // Exclude this appointment from conflict check
+        );
+
+        if (conflictCheck.hasConflict) {
+          return res.status(409).json({
+            error: true,
+            message: 'Appointment conflict detected',
+            details: conflictCheck.message
+          });
+        }
       }
-      
+
       // Update calculated fields
       updatedData.appointmentDate = newDate;
       updatedData.appointmentTime = newTime;
@@ -490,13 +504,14 @@ const getDaySchedule = async (req, res) => {
     const appointments = await Appointment.findAll({
       where: {
         appointmentDate: date,
-        status: ['scheduled'] // Only scheduled appointments
+        status: ['scheduled'], // Only scheduled appointments
+        userId: req.user.id // Only appointments for the logged-in user
       },
       order: [['appointmentTime', 'ASC']],
       attributes: [
         'id', 'customerName', 'propertyAddress', 'appointmentTime',
         'departureTime', 'returnTime', 'availableAgainTime',
-        'travelTimeMinutes', 'distanceKm'
+        'travelTimeMinutes', 'distanceKm', 'userId'
       ]
     });
     
@@ -508,7 +523,8 @@ const getDaySchedule = async (req, res) => {
       busyPeriods: appointments.map(apt => ({
         start: apt.departureTime,
         end: apt.availableAgainTime,
-        customer: apt.customerName
+        customer: apt.customerName,
+        userId: apt.userId
       }))
     };
     

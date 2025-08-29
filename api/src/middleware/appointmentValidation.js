@@ -144,8 +144,8 @@ const validateUpdateAppointment = [
     
   body('status')
     .optional()
-    .isIn(['scheduled', 'completed', 'cancelled', 'no_show'])
-    .withMessage('Status must be one of: scheduled, completed, cancelled, no_show'),
+    .isIn(['unassigned', 'scheduled', 'completed', 'cancelled', 'no_show'])
+    .withMessage('Status must be one of: unassigned, scheduled, completed, cancelled, no_show'),
     
   body('notes')
     .optional()
@@ -171,8 +171,8 @@ const validateDateParam = [
 const validateAppointmentQuery = [
   query('status')
     .optional()
-    .isIn(['scheduled', 'completed', 'cancelled', 'no_show'])
-    .withMessage('Status must be one of: scheduled, completed, cancelled, no_show'),
+    .isIn(['unassigned', 'scheduled', 'completed', 'cancelled', 'no_show'])
+    .withMessage('Status must be one of: unassigned, scheduled, completed, cancelled, no_show'),
     
   query('date')
     .optional()

@@ -196,11 +196,9 @@ async function submitEdit() {
     });
     if (!payload.customerEmail) delete payload.customerEmail;
     
-    // Convert agentId back to userId for the API
-    if (payload.agentId) {
-      payload.userId = payload.agentId;
-      delete payload.agentId;
-    }
+  // Always send agentId (can be null or string)
+  // The backend expects agentId for assignment logic
+  if (payload.agentId === '') payload.agentId = null;
     
     console.log('Submitting appointment update:', payload);
     await api.put(`/api/appointments/${id}`, payload);

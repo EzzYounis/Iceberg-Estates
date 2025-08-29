@@ -45,7 +45,17 @@
             <Edit class="w-4 h-4 mr-2" />
             Edit
           </button>
-          
+
+          <!-- Assign/Claim Buttons for Unassigned -->
+          <template v-if="appointment.status === 'unassigned'">
+            <button @click="openAssignPopup" class="btn-primary">
+              Assign To
+            </button>
+            <button @click="claimAppointment" class="btn-success">
+              Claim
+            </button>
+          </template>
+
           <div class="relative">
             <button
               @click="showStatusMenu = !showStatusMenu"
@@ -54,7 +64,6 @@
               <span>Change Status</span>
               <ChevronDown class="w-4 h-4 ml-2" />
             </button>
-            
             <!-- Status Dropdown -->
             <div
               v-if="showStatusMenu"
@@ -73,7 +82,7 @@
               </button>
             </div>
           </div>
-          
+
           <button
             @click="confirmDelete"
             class="btn-error"
@@ -82,6 +91,24 @@
             Delete
           </button>
         </div>
+  <!-- Assign Agent Popup -->
+  <div v-if="showAssignPopup" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 w-full max-w-md">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Assign Appointment</h3>
+      <div v-if="isLoadingAgents" class="flex justify-center py-4">
+        <div class="spinner w-6 h-6"></div>
+      </div>
+      <div v-else>
+        <ul class="divide-y divide-gray-200 max-h-60 overflow-y-auto mb-4">
+          <li v-for="agent in agents" :key="agent.id" class="py-2 flex items-center justify-between">
+            <span>{{ agent.firstName }} {{ agent.lastName }}</span>
+            <button @click="assignToAgent(agent.id)" class="btn-primary btn-sm">Assign</button>
+          </li>
+        </ul>
+        <button @click="showAssignPopup = false" class="btn-outline w-full">Cancel</button>
+      </div>
+    </div>
+  </div>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -333,10 +360,52 @@ import {
 } from 'lucide-vue-next'
 import { format, parseISO } from 'date-fns'
 
+import apiClient, { API_ENDPOINTS, apiHelpers } from '@/config/api'
+import { useAuthStore } from '@/stores/auth'
+
 // Router and stores
 const router = useRouter()
 const route = useRoute()
 const appointmentsStore = useAppointmentsStore()
+const authStore = useAuthStore()
+// Assign/Claim logic
+const showAssignPopup = ref(false)
+const agents = ref([])
+const isLoadingAgents = ref(false)
+
+const openAssignPopup = async () => {
+  showAssignPopup.value = true
+  isLoadingAgents.value = true
+  try {
+    const response = await apiClient.get(API_ENDPOINTS.AGENTS.BASE)
+    if (apiHelpers.isSuccess(response)) {
+      agents.value = apiHelpers.extractData(response).agents
+    }
+  } catch (e) {
+    agents.value = []
+  } finally {
+    isLoadingAgents.value = false
+  }
+}
+
+const assignToAgent = async (agentId) => {
+  try {
+    await appointmentsStore.updateAppointment(route.params.id, { agentId })
+    showAssignPopup.value = false
+    await appointmentsStore.fetchAppointment(route.params.id)
+  } catch (e) {
+    // handle error
+  }
+}
+
+const claimAppointment = async () => {
+  try {
+    await appointmentsStore.updateAppointment(route.params.id, { agentId: authStore.user.id })
+    await appointmentsStore.fetchAppointment(route.params.id)
+  } catch (e) {
+    // handle error
+  }
+}
 
 // Component state
 const showStatusMenu = ref(false)

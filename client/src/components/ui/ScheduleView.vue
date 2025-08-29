@@ -310,72 +310,71 @@ const isToday = (date) => {
 }
 
 // Calculate timeline positions
+import { useAuthStore } from '@/stores/auth'
+const authStore = useAuthStore()
+
 const scheduleBlocks = computed(() => {
-  if (!daySchedule.value || !daySchedule.value.appointments) return []
-  
-  return daySchedule.value.appointments.map(appointment => {
-    const [hours, minutes] = appointment.appointmentTime.split(':').map(Number)
-    const startMinutes = (hours - 8) * 60 + minutes
-    const top = (startMinutes / 60) * 64 // 64px per hour
-    const height = 64 // 1 hour appointment
-    
-    return {
-      ...appointment,
-      top,
-      height
-    }
-  })
+  if (!daySchedule.value || !daySchedule.value.appointments || !authStore.user) return []
+  // Only show appointments for the logged-in user
+  return daySchedule.value.appointments
+    .filter(appointment => appointment.userId === authStore.user.id)
+    .map(appointment => {
+      const [hours, minutes] = appointment.appointmentTime.split(':').map(Number)
+      const startMinutes = (hours - 8) * 60 + minutes
+      const top = (startMinutes / 60) * 64 // 64px per hour
+      const height = 64 // 1 hour appointment
+      return {
+        ...appointment,
+        top,
+        height
+      }
+    })
 })
 
-// Calculate travel periods
+// Calculate travel periods (only for logged-in user)
 const travelPeriods = computed(() => {
-  if (!daySchedule.value || !daySchedule.value.appointments) return []
-  
+  if (!daySchedule.value || !daySchedule.value.appointments || !authStore.user) return []
   const periods = []
-  
-  daySchedule.value.appointments.forEach(appointment => {
-    if (appointment.departureTime) {
-      // Travel to appointment
-      const [depHours, depMinutes] = appointment.departureTime.split(':').map(Number)
-      const [aptHours, aptMinutes] = appointment.appointmentTime.split(':').map(Number)
-      
-      const depStartMinutes = (depHours - 8) * 60 + depMinutes
-      const aptStartMinutes = (aptHours - 8) * 60 + aptMinutes
-      
-      periods.push({
-        top: (depStartMinutes / 60) * 64,
-        height: ((aptStartMinutes - depStartMinutes) / 60) * 64,
-        label: `Travel to ${appointment.customerName}`
-      })
-      
-      // Travel back from appointment
-      const returnStartMinutes = aptStartMinutes + 60 // After 1-hour appointment
-      const returnEndMinutes = returnStartMinutes + appointment.travelTimeMinutes
-      
-      periods.push({
-        top: (returnStartMinutes / 60) * 64,
-        height: ((returnEndMinutes - returnStartMinutes) / 60) * 64,
-        label: `Return from ${appointment.customerName}`
-      })
-    }
-  })
-  
+  daySchedule.value.appointments
+    .filter(appointment => String(appointment.userId) === String(authStore.user.id))
+    .forEach(appointment => {
+      if (appointment.departureTime) {
+        // Travel to appointment
+        const [depHours, depMinutes] = appointment.departureTime.split(':').map(Number)
+        const [aptHours, aptMinutes] = appointment.appointmentTime.split(':').map(Number)
+        const depStartMinutes = (depHours - 8) * 60 + depMinutes
+        const aptStartMinutes = (aptHours - 8) * 60 + aptMinutes
+        periods.push({
+          top: (depStartMinutes / 60) * 64,
+          height: ((aptStartMinutes - depStartMinutes) / 60) * 64,
+          label: `Travel to ${appointment.customerName}`
+        })
+        // Travel back from appointment
+        const returnStartMinutes = aptStartMinutes + 60 // After 1-hour appointment
+        const returnEndMinutes = returnStartMinutes + appointment.travelTimeMinutes
+        periods.push({
+          top: (returnStartMinutes / 60) * 64,
+          height: ((returnEndMinutes - returnStartMinutes) / 60) * 64,
+          label: `Return from ${appointment.customerName}`
+        })
+      }
+    })
   return periods
 })
 
-// Calculate office periods (times when not traveling or in appointments)
+// Calculate office periods (only for logged-in user)
 const officePeriods = computed(() => {
-  if (!daySchedule.value || !daySchedule.value.summary || !daySchedule.value.summary.busyPeriods) return []
-  
+  if (!daySchedule.value || !daySchedule.value.summary || !daySchedule.value.summary.busyPeriods || !authStore.user) return []
   const periods = []
-  const busyPeriods = daySchedule.value.summary.busyPeriods.sort((a, b) => a.start.localeCompare(b.start))
-  
+  // Only use busyPeriods for the logged-in user
+  const busyPeriods = daySchedule.value.summary.busyPeriods
+    .filter(period => String(period.userId) === String(authStore.user.id))
+    .sort((a, b) => a.start.localeCompare(b.start))
   // Office time before first appointment
   if (busyPeriods.length > 0) {
     const firstBusy = busyPeriods[0]
     const [firstHours, firstMinutes] = firstBusy.start.split(':').map(Number)
     const firstBusyMinutes = (firstHours - 8) * 60 + firstMinutes
-    
     if (firstBusyMinutes > 0) {
       periods.push({
         top: 0,
@@ -384,20 +383,15 @@ const officePeriods = computed(() => {
       })
     }
   }
-  
   // Office time between appointments
   for (let i = 0; i < busyPeriods.length - 1; i++) {
     const currentEnd = busyPeriods[i].end
     const nextStart = busyPeriods[i + 1].start
-    
     const [endHours, endMinutes] = currentEnd.split(':').map(Number)
     const [startHours, startMinutes] = nextStart.split(':').map(Number)
-    
     const endMinutesFromStart = (endHours - 8) * 60 + endMinutes
     const startMinutesFromStart = (startHours - 8) * 60 + startMinutes
-    
     const gapMinutes = startMinutesFromStart - endMinutesFromStart
-    
     if (gapMinutes > 0) {
       periods.push({
         top: (endMinutesFromStart / 60) * 64,
@@ -406,7 +400,6 @@ const officePeriods = computed(() => {
       })
     }
   }
-  
   return periods
 })
 

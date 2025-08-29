@@ -15,7 +15,7 @@ const Appointment = sequelize.define('Appointment', {
   // Foreign key - which agent owns this appointment
   userId: {
     type: DataTypes.UUID,
-    allowNull: false,
+    allowNull: true, // Allow null for unassigned appointments
     references: {
       model: 'users',  // References the users table
       key: 'id'
@@ -127,8 +127,8 @@ const Appointment = sequelize.define('Appointment', {
   
   // STATUS AND NOTES
   status: {
-    type: DataTypes.ENUM('scheduled', 'completed', 'cancelled', 'no_show'),
-    defaultValue: 'scheduled'
+    type: DataTypes.ENUM('unassigned', 'scheduled', 'completed', 'cancelled', 'no_show'),
+    defaultValue: 'unassigned'
   },
   
   notes: {

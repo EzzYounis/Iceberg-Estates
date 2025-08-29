@@ -203,68 +203,94 @@
                 </div>
               </div>
 
-              <!-- Actions -->
-              <div class="flex-shrink-0 ml-6">
-                <div class="flex items-center space-x-2">
-                  <!-- View Details -->
-                  <router-link
-                    :to="`/appointments/${appointment.id}`"
-                    class="p-2 text-gray-400 hover:text-primary-600 rounded-lg hover:bg-primary-50"
-                    title="View Details"
-                  >
-                    <Eye class="w-4 h-4" />
-                  </router-link>
-
-                  <!-- Edit -->
-                  <button
-                    @click="editAppointment(appointment)"
-                    class="p-2 text-gray-400 hover:text-primary-600 rounded-lg hover:bg-primary-50"
-                    title="Edit Appointment"
-                  >
-                    <Edit class="w-4 h-4" />
-                  </button>
-
-                  <!-- Delete -->
-                  <button
-                    @click="confirmDelete(appointment)"
-                    class="p-2 text-gray-400 hover:text-error-600 rounded-lg hover:bg-error-50"
-                    title="Delete Appointment"
-                  >
-                    <Trash2 class="w-4 h-4" />
-                  </button>
-
-                  <!-- Status Actions -->
-                  <div class="relative">
-                    <button
-                      @click="toggleStatusMenu(appointment.id)"
-                      class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
-                      title="Change Status"
-                    >
-                      <MoreVertical class="w-4 h-4" />
-                    </button>
-
-                    <!-- Status Dropdown -->
-                    <div
-                      v-if="activeStatusMenu === appointment.id"
-                      v-click-outside="() => activeStatusMenu = null"
-                      class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10"
-                    >
-                      <button
-                        v-for="status in availableStatuses"
-                        :key="status.value"
-                        @click="updateStatus(appointment, status.value)"
-                        class="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        :class="{ 'bg-primary-50 text-primary-700': appointment.status === status.value }"
+                  <!-- Actions -->
+                  <div class="flex-shrink-0 ml-6">
+                    <div class="flex items-center space-x-2">
+                      <!-- View Details -->
+                      <router-link
+                        :to="`/appointments/${appointment.id}`"
+                        class="p-2 text-gray-400 hover:text-primary-600 rounded-lg hover:bg-primary-50"
+                        title="View Details"
                       >
-                        <span :class="status.color" class="w-2 h-2 rounded-full mr-3"></span>
-                        {{ status.label }}
+                        <Eye class="w-4 h-4" />
+                      </router-link>
+
+                      <!-- Edit -->
+                      <button
+                        @click="editAppointment(appointment)"
+                        class="p-2 text-gray-400 hover:text-primary-600 rounded-lg hover:bg-primary-50"
+                        title="Edit Appointment"
+                      >
+                        <Edit class="w-4 h-4" />
                       </button>
+
+                      <!-- Delete -->
+                      <button
+                        @click="confirmDelete(appointment)"
+                        class="p-2 text-gray-400 hover:text-error-600 rounded-lg hover:bg-error-50"
+                        title="Delete Appointment"
+                      >
+                        <Trash2 class="w-4 h-4" />
+                      </button>
+
+                      <!-- Assign/Claim for Unassigned -->
+                      <template v-if="appointment.status === 'unassigned'">
+                        <button @click="openAssignPopup(appointment)" class="btn-primary btn-xs">Assign To</button>
+                        <button @click="claimAppointment(appointment)" class="btn-success btn-xs">Claim</button>
+                      </template>
+
+                      <!-- Status Actions -->
+                      <div class="relative">
+                        <button
+                          @click="toggleStatusMenu(appointment.id)"
+                          class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+                          title="Change Status"
+                        >
+                          <MoreVertical class="w-4 h-4" />
+                        </button>
+
+                        <!-- Status Dropdown -->
+                        <div
+                          v-if="activeStatusMenu === appointment.id"
+                          v-click-outside="() => activeStatusMenu = null"
+                          class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10"
+                        >
+                          <button
+                            v-for="status in availableStatuses"
+                            :key="status.value"
+                            @click="updateStatus(appointment, status.value)"
+                            class="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            :class="{ 'bg-primary-50 text-primary-700': appointment.status === status.value }"
+                          >
+                            <span :class="status.color" class="w-2 h-2 rounded-full mr-3"></span>
+                            {{ status.label }}
+                          </button>
+                        </div>
+                      </div>
                     </div>
+
                   </div>
                 </div>
               </div>
             </div>
           </div>
+        </div>
+
+    <!-- Assign Agent Popup -->
+    <div v-if="showAssignPopup" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg p-6 w-full max-w-md">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Assign Appointment</h3>
+        <div v-if="isLoadingAgents" class="flex justify-center py-4">
+          <div class="spinner w-6 h-6"></div>
+        </div>
+        <div v-else>
+          <ul class="divide-y divide-gray-200 max-h-60 overflow-y-auto mb-4">
+            <li v-for="agent in agents" :key="agent.id" class="py-2 flex items-center justify-between">
+              <span>{{ agent.firstName }} {{ agent.lastName }}</span>
+              <button @click="assignToAgent(agent.id)" class="btn-primary btn-sm">Assign</button>
+            </li>
+          </ul>
+          <button @click="showAssignPopup = false" class="btn-outline w-full">Cancel</button>
         </div>
       </div>
     </div>
@@ -346,9 +372,55 @@ import {
 } from 'lucide-vue-next'
 import { format, parseISO, addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns'
 
+import apiClient, { API_ENDPOINTS, apiHelpers } from '@/config/api'
+import { useAuthStore } from '@/stores/auth'
+
 // Router and stores
 const router = useRouter()
 const appointmentsStore = useAppointmentsStore()
+const authStore = useAuthStore()
+// Assign/Claim logic
+const showAssignPopup = ref(false)
+const agents = ref([])
+const isLoadingAgents = ref(false)
+let assignTargetAppointment = null
+
+const openAssignPopup = async (appointment) => {
+  showAssignPopup.value = true
+  isLoadingAgents.value = true
+  assignTargetAppointment = appointment
+  try {
+    const response = await apiClient.get(API_ENDPOINTS.AGENTS.BASE)
+    if (apiHelpers.isSuccess(response)) {
+      agents.value = apiHelpers.extractData(response).agents
+    }
+  } catch (e) {
+    agents.value = []
+  } finally {
+    isLoadingAgents.value = false
+  }
+}
+
+const assignToAgent = async (agentId) => {
+  if (!assignTargetAppointment) return
+  try {
+    await appointmentsStore.updateAppointment(assignTargetAppointment.id, { agentId })
+    showAssignPopup.value = false
+    assignTargetAppointment = null
+    await appointmentsStore.fetchAppointments()
+  } catch (e) {
+    // handle error
+  }
+}
+
+const claimAppointment = async (appointment) => {
+  try {
+    await appointmentsStore.updateAppointment(appointment.id, { agentId: authStore.user.id })
+    await appointmentsStore.fetchAppointments()
+  } catch (e) {
+    // handle error
+  }
+}
 
 // Component state
 const dateRange = ref('')
