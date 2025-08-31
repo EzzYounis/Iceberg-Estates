@@ -204,7 +204,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { Eye, EyeOff } from 'lucide-vue-next'
@@ -243,15 +243,23 @@ const passwordStrength = computed(() => {
   return Math.min(strength, 4)
 })
 
+// Real-time validation watcher
+watch([() => form.firstName, () => form.lastName, () => form.email, () => form.phoneNumber, () => form.password, () => form.confirmPassword], () => {
+  validateForm()
+}, { immediate: false })
+
 // Form validation
 const isFormValid = computed(() => {
-  return form.firstName && 
+  const hasRequiredFields = form.firstName && 
          form.lastName && 
          form.email && 
          form.password && 
          form.confirmPassword && 
-         form.acceptTerms &&
-         Object.keys(errors).length === 0
+         form.acceptTerms
+         
+  const hasNoErrors = Object.keys(errors).every(key => !errors[key])
+  
+  return hasRequiredFields && hasNoErrors
 })
 
 // Password strength helpers
@@ -267,9 +275,6 @@ const getStrengthText = (strength) => {
 
 // Form validation
 const validateForm = () => {
-  // Clear previous errors
-  Object.keys(errors).forEach(key => delete errors[key])
-  
   // First name validation
   if (!form.firstName) {
     errors.firstName = 'First name is required'
@@ -277,6 +282,8 @@ const validateForm = () => {
     errors.firstName = 'First name must be at least 2 characters'
   } else if (!/^[a-zA-Z\s'-]+$/.test(form.firstName)) {
     errors.firstName = 'First name can only contain letters, spaces, hyphens, and apostrophes'
+  } else {
+    delete errors.firstName
   }
   
   // Last name validation
@@ -286,6 +293,8 @@ const validateForm = () => {
     errors.lastName = 'Last name must be at least 2 characters'
   } else if (!/^[a-zA-Z\s'-]+$/.test(form.lastName)) {
     errors.lastName = 'Last name can only contain letters, spaces, hyphens, and apostrophes'
+  } else {
+    delete errors.lastName
   }
   
   // Email validation
@@ -293,11 +302,15 @@ const validateForm = () => {
     errors.email = 'Email is required'
   } else if (!/\S+@\S+\.\S+/.test(form.email)) {
     errors.email = 'Please enter a valid email address'
+  } else {
+    delete errors.email
   }
   
   // Phone number validation (optional)
   if (form.phoneNumber && !/^(\+44|0)[0-9\s-]{10,}$/.test(form.phoneNumber.replace(/\s/g, ''))) {
     errors.phoneNumber = 'Please enter a valid UK phone number'
+  } else {
+    delete errors.phoneNumber
   }
   
   // Password validation
@@ -307,6 +320,8 @@ const validateForm = () => {
     errors.password = 'Password must be at least 6 characters'
   } else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(form.password)) {
     errors.password = 'Password must contain at least one lowercase letter, one uppercase letter, and one number'
+  } else {
+    delete errors.password
   }
   
   // Confirm password validation
@@ -314,6 +329,8 @@ const validateForm = () => {
     errors.confirmPassword = 'Please confirm your password'
   } else if (form.password !== form.confirmPassword) {
     errors.confirmPassword = 'Passwords do not match'
+  } else {
+    delete errors.confirmPassword
   }
   
   return Object.keys(errors).length === 0
