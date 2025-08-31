@@ -58,16 +58,16 @@
 
           <div class="relative">
             <button
-              @click="showStatusMenu = !showStatusMenu"
+                @click="toggleStatusMenu"
               class="btn-secondary"
             >
               <span>Change Status</span>
               <ChevronDown class="w-4 h-4 ml-2" />
             </button>
+            <!-- DEBUG: Show value of showStatusMenu -->
             <!-- Status Dropdown -->
             <div
               v-if="showStatusMenu"
-              v-click-outside="() => showStatusMenu = false"
               class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10"
             >
               <button
@@ -411,6 +411,12 @@ const claimAppointment = async () => {
 const showStatusMenu = ref(false)
 const showDeleteConfirm = ref(false)
 
+// Toggle status menu handler
+const toggleStatusMenu = () => {
+  showStatusMenu.value = !showStatusMenu.value;
+  console.log('Change Status button clicked, showStatusMenu:', showStatusMenu.value);
+}
+
 // Computed properties
 const appointment = computed(() => appointmentsStore.currentAppointment)
 
@@ -463,6 +469,7 @@ const editAppointment = () => {
 }
 
 const updateStatus = async (newStatus) => {
+  console.log('Clicked status:', newStatus);
   try {
     await appointmentsStore.updateAppointment(route.params.id, { status: newStatus })
     showStatusMenu.value = false
