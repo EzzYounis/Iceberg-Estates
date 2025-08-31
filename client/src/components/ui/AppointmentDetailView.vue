@@ -425,7 +425,8 @@ const availableStatuses = [
   { value: 'scheduled', label: 'Scheduled', color: 'bg-primary-500' },
   { value: 'completed', label: 'Completed', color: 'bg-success-500' },
   { value: 'cancelled', label: 'Cancelled', color: 'bg-error-500' },
-  { value: 'no_show', label: 'No Show', color: 'bg-warning-500' }
+  { value: 'no_show', label: 'No Show', color: 'bg-warning-500' },
+  { value: 'unassigned', label: 'Unassigned', color: 'bg-gray-400' }
 ]
 
 // Helper functions
@@ -434,7 +435,8 @@ const getStatusClass = (status) => {
     scheduled: 'status-scheduled',
     completed: 'status-completed',
     cancelled: 'status-cancelled',
-    no_show: 'status-no-show'
+    no_show: 'status-no-show',
+    unassigned: 'status-unassigned'
   }
   return classes[status] || 'status-scheduled'
 }
@@ -444,7 +446,8 @@ const formatStatus = (status) => {
     scheduled: 'Scheduled',
     completed: 'Completed',
     cancelled: 'Cancelled',
-    no_show: 'No Show'
+    no_show: 'No Show',
+    unassigned: 'Unassigned'
   }
   return statusMap[status] || status
 }

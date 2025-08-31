@@ -9,6 +9,7 @@
           <option value="completed">Completed</option>
           <option value="cancelled">Cancelled</option>
           <option value="no_show">No Show</option>
+          <option value="unassigned">Unassigned</option>
         </select>
       </div>
       <div class="mb-4">

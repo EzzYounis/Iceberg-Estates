@@ -40,6 +40,7 @@
               <option value="completed">Completed</option>
               <option value="cancelled">Cancelled</option>
               <option value="no_show">No Show</option>
+              <option value="unassigned">Unassigned</option>
             </select>
           </div>
 
@@ -428,7 +429,8 @@ const availableStatuses = [
   { value: 'scheduled', label: 'Scheduled', color: 'bg-primary-500' },
   { value: 'completed', label: 'Completed', color: 'bg-success-500' },
   { value: 'cancelled', label: 'Cancelled', color: 'bg-error-500' },
-  { value: 'no_show', label: 'No Show', color: 'bg-warning-500' }
+  { value: 'no_show', label: 'No Show', color: 'bg-warning-500' },
+  { value: 'unassigned', label: 'Unassigned', color: 'bg-gray-400' }
 ]
 
 // Computed properties
@@ -465,7 +467,8 @@ const getStatusColor = (status) => {
     scheduled: 'bg-primary-500',
     completed: 'bg-success-500',
     cancelled: 'bg-error-500',
-    no_show: 'bg-warning-500'
+    no_show: 'bg-warning-500',
+    unassigned: 'bg-gray-400'
   }
   return colors[status] || 'bg-gray-500'
 }
@@ -475,7 +478,8 @@ const getStatusClass = (status) => {
     scheduled: 'status-scheduled',
     completed: 'status-completed',
     cancelled: 'status-cancelled',
-    no_show: 'status-no-show'
+    no_show: 'status-no-show',
+    unassigned: 'status-unassigned'
   }
   return classes[status] || 'status-scheduled'
 }
@@ -485,7 +489,8 @@ const formatStatus = (status) => {
     scheduled: 'Scheduled',
     completed: 'Completed',
     cancelled: 'Cancelled',
-    no_show: 'No Show'
+    no_show: 'No Show',
+    unassigned: 'Unassigned'
   }
   return statusMap[status] || status
 }
