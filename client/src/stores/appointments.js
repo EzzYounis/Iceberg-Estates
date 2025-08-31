@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import apiClient, { API_ENDPOINTS, apiHelpers } from '@/config/api'
 import { format, parseISO, startOfDay, endOfDay } from 'date-fns'
+import { useNotificationsStore } from './notifications'
 
 export const useAppointmentsStore = defineStore('appointments', {
   // STATE - Data that the store manages
@@ -199,12 +200,44 @@ export const useAppointmentsStore = defineStore('appointments', {
           // Add to appointments list
           this.appointments.unshift(data.appointment)
           
+          // Show success notification
+          const notificationsStore = useNotificationsStore()
+          notificationsStore.success(
+            'Appointment Created',
+            `New appointment created for ${data.appointment.customerName}`,
+            5000
+          )
+          
           console.log('Appointment created successfully')
           return data.appointment
         }
       } catch (error) {
         console.error('Failed to create appointment:', error)
         this.error = apiHelpers.handleApiError(error)
+        
+        // Show error notification
+        const notificationsStore = useNotificationsStore()
+        
+        if (error.response?.status === 400) {
+          const message = error.response?.data?.message || 'Please check your input and try again.'
+          notificationsStore.error(
+            'Invalid Data',
+            message,
+            6000
+          )
+        } else if (error.response?.status === 409) {
+          notificationsStore.error(
+            'Scheduling Conflict',
+            'There is a conflict with this appointment time. Please choose a different time.',
+            6000
+          )
+        } else {
+          notificationsStore.error(
+            'Creation Failed',
+            'Failed to create appointment. Please try again later.',
+            6000
+          )
+        }
         
         // Handle validation errors
         if (error.response?.data?.details && Array.isArray(error.response.data.details)) {
@@ -242,12 +275,86 @@ export const useAppointmentsStore = defineStore('appointments', {
             this.currentAppointment = data.appointment
           }
           
+          // Show success notification
+          const notificationsStore = useNotificationsStore()
+          
+          // Determine what was updated for better messaging
+          if (appointmentData.status) {
+            const statusMap = {
+              scheduled: 'Scheduled',
+              completed: 'Completed',
+              cancelled: 'Cancelled',
+              no_show: 'Marked as No Show',
+              unassigned: 'Unassigned'
+            }
+            notificationsStore.success(
+              'Status Updated',
+              `Appointment status changed to ${statusMap[appointmentData.status] || appointmentData.status}`,
+              4000
+            )
+          } else if (appointmentData.agentId !== undefined) {
+            if (appointmentData.agentId) {
+              notificationsStore.success(
+                'Agent Assigned',
+                'Appointment has been assigned successfully',
+                4000
+              )
+            } else {
+              notificationsStore.success(
+                'Agent Unassigned',
+                'Appointment is now unassigned',
+                4000
+              )
+            }
+          } else {
+            notificationsStore.success(
+              'Appointment Updated',
+              'Appointment has been updated successfully',
+              4000
+            )
+          }
+          
           console.log('Appointment updated successfully')
           return data.appointment
         }
       } catch (error) {
         console.error('Failed to update appointment:', error)
         this.error = apiHelpers.handleApiError(error)
+        
+        // Get notifications store and show error notification
+        const notificationsStore = useNotificationsStore()
+        
+        // Handle specific error types
+        if (error.response?.status === 409) {
+          // Conflict error - appointment has been modified by another user
+          notificationsStore.error(
+            'Appointment Conflict',
+            'You have another appointment at the same time slot.',
+            8000
+          )
+        } else if (error.response?.status === 404) {
+          // Not found error
+          notificationsStore.error(
+            'Appointment Not Found',
+            'The appointment you are trying to update no longer exists.',
+            6000
+          )
+        } else if (error.response?.status === 400) {
+          // Validation error
+          const message = error.response?.data?.message || 'Please check your input and try again.'
+          notificationsStore.error(
+            'Invalid Data',
+            message,
+            6000
+          )
+        } else {
+          // Generic error
+          notificationsStore.error(
+            'Update Failed',
+            'Failed to update appointment. Please try again later.',
+            6000
+          )
+        }
         
         if (error.response?.data?.details && Array.isArray(error.response.data.details)) {
           this.validationErrors = error.response.data.details
@@ -270,6 +377,10 @@ export const useAppointmentsStore = defineStore('appointments', {
         const response = await apiClient.delete(API_ENDPOINTS.APPOINTMENTS.BY_ID(id))
         
         if (apiHelpers.isSuccess(response)) {
+          // Find appointment name before removing for notification
+          const appointment = this.appointments.find(apt => apt.id === id)
+          const customerName = appointment?.customerName || 'Unknown Customer'
+          
           // Remove from appointments list
           this.appointments = this.appointments.filter(apt => apt.id !== id)
           
@@ -278,12 +389,44 @@ export const useAppointmentsStore = defineStore('appointments', {
             this.currentAppointment = null
           }
           
+          // Show success notification
+          const notificationsStore = useNotificationsStore()
+          notificationsStore.success(
+            'Appointment Deleted',
+            `Appointment for ${customerName} has been deleted`,
+            4000
+          )
+          
           console.log('Appointment deleted successfully')
           return true
         }
       } catch (error) {
         console.error('Failed to delete appointment:', error)
         this.error = apiHelpers.handleApiError(error)
+        
+        // Show error notification
+        const notificationsStore = useNotificationsStore()
+        
+        if (error.response?.status === 404) {
+          notificationsStore.error(
+            'Appointment Not Found',
+            'The appointment you are trying to delete no longer exists.',
+            6000
+          )
+        } else if (error.response?.status === 409) {
+          notificationsStore.error(
+            'Cannot Delete',
+            'This appointment cannot be deleted due to conflicts. Please try again later.',
+            6000
+          )
+        } else {
+          notificationsStore.error(
+            'Delete Failed',
+            'Failed to delete appointment. Please try again later.',
+            6000
+          )
+        }
+        
         throw error
       } finally {
         this.isDeleting = false

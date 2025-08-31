@@ -28,11 +28,15 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { CheckCircle, AlertCircle, AlertTriangle, Info, X } from 'lucide-vue-next'
+import { useNotificationsStore } from '@/stores/notifications'
 
-// Notification state
-const notifications = ref([])
+// Get notifications store
+const notificationsStore = useNotificationsStore()
+
+// Use store notifications
+const notifications = computed(() => notificationsStore.notifications)
 
 // Computed classes for different notification types
 const notificationClasses = (type) => {
@@ -57,33 +61,8 @@ const getIcon = (type) => {
   return icons[type] || Info
 }
 
-// Add notification
-const addNotification = (notification) => {
-  const id = Date.now().toString()
-  notifications.value.push({
-    id,
-    ...notification
-  })
-  
-  // Auto-remove after 5 seconds
-  setTimeout(() => {
-    removeNotification(id)
-  }, 5000)
-  
-  return id
-}
-
-// Remove notification
+// Remove notification (delegate to store)
 const removeNotification = (id) => {
-  const index = notifications.value.findIndex(n => n.id === id)
-  if (index > -1) {
-    notifications.value.splice(index, 1)
-  }
+  notificationsStore.removeNotification(id)
 }
-
-// Expose methods to parent components
-defineExpose({
-  addNotification,
-  removeNotification
-})
 </script>

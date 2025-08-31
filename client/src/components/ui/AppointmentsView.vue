@@ -396,7 +396,8 @@ const assignToAgent = async (agentId) => {
     assignTargetAppointment = null
     await appointmentsStore.fetchAppointments()
   } catch (e) {
-    // handle error
+    // Error notification is handled by the store
+    console.error('❌ Failed to assign appointment:', e)
   }
 }
 
@@ -405,7 +406,8 @@ const claimAppointment = async (appointment) => {
     await appointmentsStore.updateAppointment(appointment.id, { agentId: authStore.user.id })
     await appointmentsStore.fetchAppointments()
   } catch (e) {
-    // handle error
+    // Error notification is handled by the store
+    console.error('❌ Failed to claim appointment:', e)
   }
 }
 
@@ -576,8 +578,8 @@ const deleteAppointment = async () => {
   try {
     await appointmentsStore.deleteAppointment(appointmentToDelete.value.id)
     appointmentToDelete.value = null
-    console.log('✅ Appointment deleted successfully')
   } catch (error) {
+    // Error notification is handled by the store
     console.error('❌ Failed to delete appointment:', error)
   }
 }
@@ -586,8 +588,8 @@ const updateStatus = async (appointment, newStatus) => {
   try {
     await appointmentsStore.updateAppointment(appointment.id, { status: newStatus })
     activeStatusMenu.value = null
-    console.log('✅ Appointment status updated')
   } catch (error) {
+    // Error notification is handled by the store
     console.error('❌ Failed to update status:', error)
   }
 }
